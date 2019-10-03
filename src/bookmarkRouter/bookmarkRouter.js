@@ -4,18 +4,25 @@ const bodyParser = express.json();
 const uuid = require('uuid/v4');
 const logger = require('../logger');
 
-const bookmarks = [{
-    id: 1,
-    title: "I'm a bookmark!",
-    rating: 5,
-    url: 'http://www.thisisatotallylegitwebsite.bizbang',
-    description: 'All of the words are meeeeee'
-}]
+const bookmarksService = require('./bookmarksService');
+
+// const bookmarks = [{
+//     id: 1,
+//     title: "I'm a bookmark!",
+//     rating: 5,
+//     url: 'http://www.thisisatotallylegitwebsite.bizbang',
+//     description: 'All of the words are meeeeee'
+// }]
 
 bookmarkRouter
     .route('/api/bookmarks')
     .get((req, res) => {
-        res.json(bookmarks)
+        const db = req.app.get('db');
+        bookmarksService.getAllBookmarks(db)
+            .then(bm => {
+                res.json(bm)
+            })
+            .catch(next)
     })
     .post(bodyParser, (req, res) => {
         const { title, url, rating, description } = req.body;
@@ -73,6 +80,6 @@ bookmarkRouter
         bookmarks.splice(index, 1);
         logger.info(`Bookmark with id ${id} deleted.`);
         res.status(204).end();
-    })
+   })
 
 module.exports = bookmarkRouter;

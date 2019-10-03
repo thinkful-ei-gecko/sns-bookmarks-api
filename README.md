@@ -1,6 +1,4 @@
-# Express Boilerplate!
-
-This is a boilerplate project used for starting new projects!
+Seed test data using: psql -U dunder_mifflin -d blogful -f ./seeds/seed.blogful_articles.sql
 
 ## Set up
 
