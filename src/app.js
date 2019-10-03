@@ -10,6 +10,7 @@ const bookmarksService = require('./bookmarksService');
 const bookmarkRouter = require('./bookmarkRouter/bookmarkRouter');
 
 const app = express();
+const parser = express.json();
 const morganOption = (NODE_ENV === 'production') ? 'tiny' : 'common';
 app.use(morgan(morganOption));
 app.use(helmet());
@@ -31,30 +32,7 @@ app.get('/', (req, res) => {
     res.send('Hello, world')
 })
 
-app.get('/api/bookmarks', (req, res, next) => {
-    const db = req.app.get('db');
-    bookmarksService.getAllBookmarks(db)
-        .then(bm => {
-            res.json(bm)
-        })
-        .catch(next)
-})
-
-app.get('/api/bookmarks/:id', (req, res, next) => {
-    const db = req.app.get('db');
-    bookmarksService.getBookmarkById(db, req.params.id)
-        .then(bm => {
-            if (!bm) {
-                return res.status(404).json({
-                    error: { message: 'Bookmark does not exist' }
-                })
-            }
-            res.json(bm)
-        })
-        .catch(next)
-})
-
-//app.use(bookmarkRouter);
+app.use(bookmarkRouter);
 
 app.use(function errorHandler(error, req, res, next) {
     let response;
