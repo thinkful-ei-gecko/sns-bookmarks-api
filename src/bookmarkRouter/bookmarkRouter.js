@@ -14,7 +14,7 @@ const serializeBookmark = bookmark => ({
     link: bookmark.link,
     details: xss(bookmark.details),
     rating: bookmark.rating,
-  })
+})
 
 bookmarkRouter
     .route('/api/bookmarks')
@@ -54,16 +54,16 @@ bookmarkRouter
     .route('/api/bookmarks/:id')
     .all((req, res, next) => {
         bookmarksService.getBookmarkById(req.app.get('db'), req.params.id)
-        .then(bm => {
-            if (!bm) {
-                return res.status(404).json({
-                    error: { message: 'bookmark does not exist' }
-                })
-            }
-            res.bm = bm
-            next()
-        })
-        .catch(next)
+            .then(bm => {
+                if (!bm) {
+                    return res.status(404).json({
+                        error: { message: 'bookmark does not exist' }
+                    })
+                }
+                res.bm = bm
+                next()
+            })
+            .catch(next)
     })
     .get((req, res) => {
         res.json(serializeBookmark(res.bm))
@@ -71,10 +71,29 @@ bookmarkRouter
 
     .delete((req, res, next) => {
         bookmarksService.deleteById(req.app.get('db'), req.params.id)
-        .then(() => {
-            res.status(204).end()
-        })
-        .catch(next)
+            .then(() => {
+                res.status(204).end()
+            })
+            .catch(next)
+    })
+
+    .patch(parser, (req, res, next) => {
+        const { title, link, rating, details } = req.body
+        const newBM = {
+            title: xss(title),
+            link: link,
+            rating: rating,
+            details: xss(details)
+        }
+
+        const numVal = Object.values(newBM).filter(Boolean).length;
+        if (numVal === 0) {
+            return res.status(400).json({
+                error: { message: 'request body must contain at least one of the following: title, link, details, or rating' }
+            })
+        }
+        bookmarksService.updateBookmark(req.app.get('db'), req.params.id, newBM)
+            .then(res.status(204).end())
     })
 
 module.exports = bookmarkRouter;

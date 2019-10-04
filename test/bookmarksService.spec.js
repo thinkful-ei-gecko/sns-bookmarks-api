@@ -123,36 +123,36 @@ describe(`Articles endpoints`, () => {
                 details: `Bad image <img src="https://url.to.file.which/does-not.exist" onerror="alert(document.cookie);">. But not <strong>all</strong> bad.`
             }
             return supertest(app)
-            .post('/api/bookmarks')
-            .send(maliciousBM)
-            .expect(201)
-            .expect(res => {
-                expect(res.body.title).to.eql('Naughty naughty very naughty &lt;script&gt;alert(\"xss\");&lt;/script&gt;')
-                expect(res.body.link).to.eql(maliciousBM.link)
-                expect(res.body.rating).to.eql(maliciousBM.rating)
-                expect(res.body.details).to.eql(`Bad image <img src="https://url.to.file.which/does-not.exist">. But not <strong>all</strong> bad.`)
-                expect(res.headers.location).to.eql(`/api/bookmarks/${res.body.id}`)
-            })
-            .then(postRes =>
-                supertest(app)
-                    .get(`/api/bookmarks/${postRes.body.id}`)
-                    .expect(postRes.body)
-            )
+                .post('/api/bookmarks')
+                .send(maliciousBM)
+                .expect(201)
+                .expect(res => {
+                    expect(res.body.title).to.eql('Naughty naughty very naughty &lt;script&gt;alert(\"xss\");&lt;/script&gt;')
+                    expect(res.body.link).to.eql(maliciousBM.link)
+                    expect(res.body.rating).to.eql(maliciousBM.rating)
+                    expect(res.body.details).to.eql(`Bad image <img src="https://url.to.file.which/does-not.exist">. But not <strong>all</strong> bad.`)
+                    expect(res.headers.location).to.eql(`/api/bookmarks/${res.body.id}`)
+                })
+                .then(postRes =>
+                    supertest(app)
+                        .get(`/api/bookmarks/${postRes.body.id}`)
+                        .expect(postRes.body)
+                )
         })
 
-        it('responds with 400 and an error when the title is missing', () => {
-            return supertest(app)
-                .post('/api/bookmarks')
-                .send({
-                    title: null,
-                    link: 'http://www.test.com',
-                    rating: '4',
-                    details: 'I am a new bookmarks for testing purposes'
-                })
-                .expect(400, {
-                    error: { message: 'missing title in request body' }
-                })
-        })
+        // it('responds with 400 and an error when the title is missing', () => {
+        //     return supertest(app)
+        //         .post('/api/bookmarks')
+        //         .send({
+        //             title: null,
+        //             link: 'http://www.test.com',
+        //             rating: '4',
+        //             details: 'I am a new bookmarks for testing purposes'
+        //         })
+        //         .expect(400, {
+        //             error: { message: 'missing title in request body' }
+        //         })
+        // })
 
         it('responds with 400 and an error when the link is missing', () => {
             return supertest(app)
@@ -208,147 +208,78 @@ describe(`Articles endpoints`, () => {
                 const testId = 12345;
                 return supertest(app)
                     .delete(`/api/bookmarks/${testId}`)
-                    .expect(404, { error: { message: 'bookmark does not exist' }})
+                    .expect(404, { error: { message: 'bookmark does not exist' } })
+            })
+        })
+    })
+
+    describe('PATCH /api/bookmarks/:id', () => {
+        context('Given no bookmarks', () => {
+            it('responds with 404', () => {
+                const testId = 12345;
+                return supertest(app)
+                    .patch(`/api/bookmarks/${testId}`)
+                    .expect(404, { error: { message: 'bookmark does not exist' } })
+            })
+        })
+        context('Given there are bookmarks in the db', () => {
+            const testBMs = makeTestBookmarks();
+            beforeEach('insert bookmarks', () => {
+                return db
+                    .into('bookmarks')
+                    .insert(testBMs)
+            })
+            it('responds with 204 and updates the bookmark', () => {
+                const testId = 2;
+                const updatedBM = {
+                    title: 'updated title',
+                    link: 'updated link',
+                    rating: '2',
+                    details: 'updated details'
+                }
+
+                const expectedBM = {
+                    ...testBMs[testId - 1],
+                    ...updatedBM
+                }
+                return supertest(app)
+                    .patch(`/api/bookmarks/${testId}`)
+                    .send(updatedBM)
+                    .expect(204)
+                    .then(res => {
+                        supertest(app)
+                            .get(`/api/bookmarks/${testId}`)
+                            .expect(expectedBM)
+                    })
+            })
+
+            it('responds with 400 when no required fields are provided', () => {
+                const testId = 2;
+                return supertest(app)
+                    .patch(`/api/bookmarks/${testId}`)
+                    .send({ trash: 'trash' })
+                    .expect(400, { error: { message: 'request body must contain at least one of the following: title, link, details, or rating' } })
+            })
+
+            it('responds with 204 when updating only a subset of required fields', () => {
+                const testId = 2;
+                const updatedBM = {
+                    title: 'updated title'
+                }
+                const expectedBM = {
+                    ...testBMs[testId - 1],
+                    ...updatedBM
+                }
+                return supertest(app)
+                .patch(`/api/bookmarks/${testId}`)
+                .send(updatedBM)
+                .expect(204)
+                .then(res => {
+                    supertest(app)
+                        .get(`/api/bookmarks/${testId}`)
+                        .expect(expectedBM)
+                })
             })
         })
     })
 })
-
-
-
-
-// require('dotenv').config();
-// const { expect } = require('chai');
-// const supertest = require('supertest');
-// const ShoppingListService = require('../src/shopping-list-service')
-// const knex = require('knex');
-
-// describe('Shopping List Service', () => {
-//     let db;
-//     let testItems = [
-//         {
-//             id: 1,
-//             name: 'banana',
-//             checked: false,
-//             price: "0.50",
-//             category: 'Snack',
-//             date_added: new Date('2120-04-22T16:28:32.615Z')
-//         },
-//         {
-//             id: 2,
-//             name: 'fish',
-//             checked: false,
-//             price: "12.00",
-//             category: 'Lunch',
-//             date_added: new Date('2100-05-22T16:28:32.615Z'),
-//         },
-//         {
-//             id: 3,
-//             name: 'meat?',
-//             checked: false,
-//             price: "99.00",
-//             category: 'Main',
-//             date_added: new Date('1919-12-22T16:28:32.615Z'),
-//         },
-//     ]
-
-//     before(() => {
-//         db = knex({
-//             client: 'pg',
-//             connection: 'postgresql://dunder_mifflin:asdf@localhost/knex-practice-test'
-//         })
-//     })
-//     after(() => db.destroy())
-//     before(() => db('shopping_list').truncate());
-//     afterEach(() => db('shopping_list').truncate());
-
-//     context(`given 'shopping_list' has data`, () => {
-//         beforeEach(() => {
-//             return db
-//                 .into('shopping_list')
-//                 .insert(testItems)
-//         })
-//         it('resolves all items from db', () => {
-//             return ShoppingListService.getAllItems(db)
-//                 .then(actual => {
-//                     expect(actual).to.eql(testItems)
-//                 })
-//         })
-
-//         it(`getItemById() resolves an item by id`, () => {
-//             const testId = 3;
-//             const testItem = testItems[testId - 1];
-//             return ShoppingListService.getItemById(db, testId)
-//                 .then(actual => {
-//                     expect(actual).to.eql({
-//                         id: testId,
-//                         name: testItem.name,
-//                         checked: testItem.checked,
-//                         price: testItem.price,
-//                         category: testItem.category,
-//                         date_added: testItem.date_added,
-//                     })
-//                 })
-//         })
-
-//         it(`deleteById() remove an item by id`, () => {
-//             const testId = 3;
-//             return ShoppingListService.deleteById(db, testId)
-//                 .then(() => ShoppingListService.getAllItems(db))
-//                 .then(allItems => {
-//                     const expected = testItems.filter(item => item.id !== testId)
-//                     expect(allItems).to.eql(expected)
-//                 })
-//         })
-
-//         it(`updateItem() updates an article by id`, () => {
-//             const testId = 3
-//             const newItem = {
-//                 name: 'updated item',
-//                 checked: false,
-//                 price: "12.00",
-//                 category: 'Lunch',
-//                 date_added: new Date(),
-//             }
-//             return ShoppingListService.updateItem(db, testId, newItem)
-//                 .then(() => ShoppingListService.getItemById(db, testId))
-//                 .then(item => {
-//                     expect(item).to.eql({ id: testId, ...newItem })
-//                 })
-//         })
-//     })
-
-//     context(`Given 'shopping_list' has no data`, () => {
-//         it(`getAllItems() resolves an empty array`, () => {
-//             return ShoppingListService.getAllItems(db)
-//                 .then(actual => {
-//                     expect(actual).to.eql([])
-//                 })
-//         })
-//         it(`addItem() inserts an item and resolves it with id`, () => {
-
-//             const newItem = {
-//                 name: 'added item',
-//                 checked: false,
-//                 price: "122.00",
-
-
-//                 checked: false,
-//                 price: "122.00",
-//                 category: 'Lunch',
-//                 date_added: new Date(),
-//             }
-//             return ShoppingListService.addItem(db, newItem)
-//                 .then(actual => {
-//                     expect(actual).to.eql({
-//                         id: 1,
-//                         name: newItem.name,
-//                         checked: newItem.checked,
-//                         price: newItem.price,
-//                         category: newItem.category,
-//                         date_added: newItem.date_added,
-//                     })
-//                 })
-//         })
-//     })
-// })

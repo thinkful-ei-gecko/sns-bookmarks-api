@@ -3,14 +3,11 @@ const express = require('express');
 const morgan = require('morgan');
 const cors = require('cors');
 const helmet = require('helmet');
-const logger = require('./logger');
 
 const { NODE_ENV } = require('../test/config');
-const bookmarksService = require('./bookmarksService');
 const bookmarkRouter = require('./bookmarkRouter/bookmarkRouter');
 
 const app = express();
-const parser = express.json();
 const morganOption = (NODE_ENV === 'production') ? 'tiny' : 'common';
 app.use(morgan(morganOption));
 app.use(helmet());
